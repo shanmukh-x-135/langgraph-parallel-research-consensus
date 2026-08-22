@@ -3,9 +3,12 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
-from app.api.auth import get_current_user_id
+from app.api.auth import GoogleIdentity, get_current_user_id
 from app.api.jobs import InMemoryJobStore, ResearchRunner, execute_research_job
 from app.api.models import (
+    AuthenticatedUser,
+    AuthResponse,
+    GoogleLoginRequest,
     ResearchHistoryItem,
     ResearchReport,
     ResearchRequest,
@@ -19,6 +22,30 @@ CurrentUser = Annotated[str, Depends(get_current_user_id)]
 
 def _services(request: Request) -> tuple[InMemoryJobStore, ResearchRunner]:
     return request.app.state.job_store, request.app.state.research_runner
+
+
+@router.post("/auth/google", response_model=AuthResponse)
+async def google_login(payload: GoogleLoginRequest, request: Request) -> AuthResponse:
+    try:
+        identity: GoogleIdentity = await request.app.state.google_verifier(
+            payload.id_token, request.app.state.settings
+        )
+        access_token = request.app.state.session_tokens.issue(identity)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google ID token",
+        ) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    return AuthResponse(
+        access_token=access_token,
+        expires_in=request.app.state.session_tokens.ttl_seconds,
+        user=AuthenticatedUser(**identity.model_dump()),
+    )
 
 
 @router.get("/health")

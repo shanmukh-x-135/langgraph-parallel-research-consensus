@@ -5,11 +5,11 @@ research strategies run concurrently, then feed a transparent consensus and synt
 
 ## Current status
 
-Milestones 1–3 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
+Milestones 1–4 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
 LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
 and contradiction-resolution nodes. A thin FastAPI layer starts background jobs and provides
-status, result, and owner-scoped history endpoints. Persistence, cache, Google authentication, and
-UI are deferred to their PRD milestones.
+status, result, and owner-scoped history endpoints. Google ID tokens are exchanged for signed API
+sessions. Persistence, cache, and UI are deferred to their PRD milestones.
 
 ## Current research architecture
 
@@ -37,5 +37,6 @@ pytest
 
 Set `OPENAI_API_KEY` and `TAVILY_API_KEY` in `.env` before running a live research request.
 
-Run the API with `uvicorn app.main:app --reload`. Until Google OAuth is added in Milestone 4,
-protected local-development requests require an `X-User-ID` header.
+Run the API with `uvicorn app.main:app --reload`. Protected requests use bearer sessions returned
+by `POST /auth/google`. An `X-User-ID` header is accepted only when development authentication is
+explicitly enabled; production mode always requires a bearer session.

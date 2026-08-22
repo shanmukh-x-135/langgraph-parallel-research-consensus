@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -34,6 +35,9 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: SecretStr = SecretStr("")
     session_secret: SecretStr = SecretStr("")
+    session_ttl_seconds: int = Field(default=86400, ge=300)
+    app_env: Literal["development", "test", "production"] = "development"
+    allow_dev_auth: bool = True
 
 
 @lru_cache

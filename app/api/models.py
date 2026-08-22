@@ -40,3 +40,21 @@ class ResearchHistoryItem(BaseModel):
     status: JobStatus
     created_at: datetime
     completed_at: datetime | None = None
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str = Field(min_length=20)
+
+
+class AuthenticatedUser(BaseModel):
+    id: str
+    email: str
+    name: str
+    picture: str | None = None
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
+    user: AuthenticatedUser
