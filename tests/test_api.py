@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.api.jobs import InMemoryJobStore
+from app.cache.redis_services import InMemoryCacheRateLimiter
 from app.main import create_app
 from app.research.models import AgentName, AgentStatus, ResearchResult
 
@@ -27,8 +28,12 @@ async def successful_runner(query, user_id, *, job_id=None):
     }
 
 
-def make_test_app(runner=successful_runner):
-    return create_app(research_runner=runner, job_store=InMemoryJobStore())
+def make_test_app(runner=successful_runner, *, cache=None):
+    return create_app(
+        research_runner=runner,
+        job_store=InMemoryJobStore(),
+        cache_rate_limiter=cache or InMemoryCacheRateLimiter(),
+    )
 
 
 def test_health_is_public():

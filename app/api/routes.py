@@ -66,9 +66,22 @@ async def start_research(
     request: Request,
 ) -> ResearchStartResponse:
     store, runner = _services(request)
+    if not await request.app.state.cache_rate_limiter.allow_research(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Research rate limit exceeded",
+        )
     job_id = str(uuid4())
     await store.create(job_id, user_id, payload.query)
-    background_tasks.add_task(execute_research_job, store, runner, job_id, user_id, payload.query)
+    background_tasks.add_task(
+        execute_research_job,
+        store,
+        request.app.state.cache_rate_limiter,
+        runner,
+        job_id,
+        user_id,
+        payload.query,
+    )
     return ResearchStartResponse(job_id=job_id, status="running")
 
 

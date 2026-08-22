@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 
 from app.api.models import JobStatus, ResearchHistoryItem, ResearchReport
+from app.cache.redis_services import CacheRateLimiter
 from app.research.state import ResearchState
 
 ResearchRunner = Callable[..., Awaitable[ResearchState]]
@@ -119,13 +120,26 @@ class InMemoryJobStore:
 
 async def execute_research_job(
     store: JobStore,
+    cache: CacheRateLimiter,
     runner: ResearchRunner,
     job_id: str,
     user_id: str,
     query: str,
 ) -> None:
     try:
+        try:
+            cached = await cache.get_cached(query)
+        except Exception:
+            cached = None
+        if cached is not None:
+            await store.complete(job_id, cached.to_state(job_id, user_id, query))
+            return
         state = await runner(query, user_id, job_id=job_id)
         await store.complete(job_id, state)
+        if state["status"] != "failed":
+            try:
+                await cache.cache_result(query, state)
+            except Exception:
+                pass
     except Exception as exc:
         await store.fail(job_id, f"{type(exc).__name__}: {exc}")
