@@ -5,17 +5,18 @@ research strategies run concurrently, then feed a transparent consensus and synt
 
 ## Current status
 
-Milestone 1 is implemented: the Broad Web, Academic, and Recent News agents fan out in one
-LangGraph superstep, tolerate individual failures/timeouts, and fan in to structured results.
-Consensus, API, persistence, cache, authentication, and UI are intentionally deferred to their
-PRD milestones.
+Milestones 1–2 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
+LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
+and contradiction-resolution nodes. API, persistence, cache, authentication, and UI are deferred
+to their PRD milestones.
 
-## Milestone 1 architecture
+## Current research architecture
 
 ```text
                     ┌─ agent_broad ────┐
-START ──────────────┼─ agent_academic ─┼─> collect_findings ─> END
-                    └─ agent_recent ────┘
+START ──────────────┼─ agent_academic ─┼─> compare_findings
+                    └─ agent_recent ────┘          |
+                                         resolve_contradictions ─> END
 ```
 
 LangGraph schedules the three async agent nodes concurrently. Each agent uses Tavily with a

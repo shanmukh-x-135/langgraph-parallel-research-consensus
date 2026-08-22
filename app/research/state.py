@@ -1,6 +1,6 @@
 from typing import Annotated, Literal, NotRequired, TypedDict
 
-from app.research.models import AgentName, ResearchResult
+from app.research.models import AgentName, ClaimCluster, Contradiction, ResearchResult
 
 
 def merge_agent_results(
@@ -16,10 +16,10 @@ class ResearchState(TypedDict):
     user_id: str
     query: str
     agent_results: Annotated[list[ResearchResult], merge_agent_results]
-    claim_clusters: NotRequired[list[dict]]
+    claim_clusters: NotRequired[list[ClaimCluster]]
     deduplicated_sources: NotRequired[list[dict]]
-    contradictions: NotRequired[list[dict]]
+    contradictions: NotRequired[list[Contradiction]]
     confidence_scores: NotRequired[dict[str, dict]]
     final_answer: NotRequired[str]
-    contested_points: NotRequired[list[dict]]
+    contested_points: NotRequired[list[Contradiction]]
     status: Literal["running", "completed", "failed"]

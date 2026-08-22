@@ -2,7 +2,15 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from app.research.models import AgentName, AgentStatus, Claim, ResearchResult, SearchSource
+from app.research.models import (
+    AgentName,
+    AgentStatus,
+    Claim,
+    ClaimCluster,
+    Contradiction,
+    ResearchResult,
+    SearchSource,
+)
 from app.research.search import SearchRequest
 from app.research.state import ResearchState
 
@@ -11,6 +19,8 @@ ExtractFunction = Callable[
     [str, AgentName, str, list[SearchSource]],
     Awaitable[list[Claim]],
 ]
+CompareFunction = Callable[[str, list[ResearchResult]], Awaitable[list[ClaimCluster]]]
+ResolveFunction = Callable[[str, list[ClaimCluster]], Awaitable[list[Contradiction]]]
 
 
 @dataclass(frozen=True)
@@ -19,6 +29,8 @@ class AgentDependencies:
     extract: ExtractFunction
     timeout_seconds: float
     recent_news_days: int
+    compare: CompareFunction | None = None
+    resolve: ResolveFunction | None = None
 
 
 ACADEMIC_DOMAINS = [

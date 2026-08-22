@@ -119,5 +119,6 @@ def test_graph_has_fixed_three_agent_fan_out_and_fan_in():
     edges = {(edge.source, edge.target) for edge in graph.get_graph().edges}
     for node_name in AGENT_NODE_NAMES:
         assert ("__start__", node_name) in edges
-        assert (node_name, "collect_findings") in edges
-    assert ("collect_findings", "__end__") in edges
+        assert (node_name, "compare_findings") in edges
+    assert ("compare_findings", "resolve_contradictions") in edges
+    assert ("resolve_contradictions", "__end__") in edges
