@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.auth import GoogleIdentity, verify_google_identity
+from app.api.jobs import InMemoryJobStore
 from app.core.config import Settings
 from app.main import create_app
 
@@ -32,6 +33,7 @@ def auth_app(*, app_env="test", allow_dev_auth=True):
     )
     return create_app(
         research_runner=unused_runner,
+        job_store=InMemoryJobStore(),
         settings=settings,
         google_verifier=valid_google_verifier,
     )

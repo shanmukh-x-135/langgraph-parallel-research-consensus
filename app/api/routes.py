@@ -4,7 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
 from app.api.auth import GoogleIdentity, get_current_user_id
-from app.api.jobs import InMemoryJobStore, ResearchRunner, execute_research_job
+from app.api.jobs import JobStore, ResearchRunner, execute_research_job
 from app.api.models import (
     AuthenticatedUser,
     AuthResponse,
@@ -20,7 +20,7 @@ router = APIRouter()
 CurrentUser = Annotated[str, Depends(get_current_user_id)]
 
 
-def _services(request: Request) -> tuple[InMemoryJobStore, ResearchRunner]:
+def _services(request: Request) -> tuple[JobStore, ResearchRunner]:
     return request.app.state.job_store, request.app.state.research_runner
 
 
@@ -29,6 +29,9 @@ async def google_login(payload: GoogleLoginRequest, request: Request) -> AuthRes
     try:
         identity: GoogleIdentity = await request.app.state.google_verifier(
             payload.id_token, request.app.state.settings
+        )
+        await request.app.state.job_store.upsert_user(
+            identity.id, identity.email, identity.name, identity.picture
         )
         access_token = request.app.state.session_tokens.issue(identity)
     except ValueError as exc:

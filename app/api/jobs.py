@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Protocol
 
 from app.api.models import JobStatus, ResearchHistoryItem, ResearchReport
 from app.research.state import ResearchState
@@ -21,12 +22,41 @@ class JobRecord:
     error: str | None = None
 
 
+class JobStore(Protocol):
+    async def initialize(self) -> None: ...
+
+    async def dispose(self) -> None: ...
+
+    async def upsert_user(
+        self, user_id: str, email: str, name: str, picture: str | None
+    ) -> None: ...
+
+    async def create(self, job_id: str, user_id: str, query: str) -> JobRecord: ...
+
+    async def get_for_user(self, job_id: str, user_id: str) -> JobRecord | None: ...
+
+    async def complete(self, job_id: str, state: ResearchState) -> None: ...
+
+    async def fail(self, job_id: str, error: str) -> None: ...
+
+    async def history_for_user(self, user_id: str) -> list[ResearchHistoryItem]: ...
+
+
 class InMemoryJobStore:
     """Milestone 3 registry; PostgreSQL replaces it in Milestone 5."""
 
     def __init__(self) -> None:
         self._jobs: dict[str, JobRecord] = {}
         self._lock = asyncio.Lock()
+
+    async def initialize(self) -> None:
+        return None
+
+    async def dispose(self) -> None:
+        return None
+
+    async def upsert_user(self, user_id: str, email: str, name: str, picture: str | None) -> None:
+        return None
 
     async def create(self, job_id: str, user_id: str, query: str) -> JobRecord:
         record = JobRecord(
@@ -88,7 +118,7 @@ class InMemoryJobStore:
 
 
 async def execute_research_job(
-    store: InMemoryJobStore,
+    store: JobStore,
     runner: ResearchRunner,
     job_id: str,
     user_id: str,

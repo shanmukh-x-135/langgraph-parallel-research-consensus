@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.api.jobs import InMemoryJobStore
 from app.main import create_app
 from app.research.models import AgentName, AgentStatus, ResearchResult
 
@@ -26,13 +27,17 @@ async def successful_runner(query, user_id, *, job_id=None):
     }
 
 
+def make_test_app(runner=successful_runner):
+    return create_app(research_runner=runner, job_store=InMemoryJobStore())
+
+
 def test_health_is_public():
-    client = TestClient(create_app(research_runner=successful_runner))
+    client = TestClient(make_test_app())
     assert client.get("/health").json() == {"status": "ok"}
 
 
 def test_research_job_status_result_and_history_flow():
-    client = TestClient(create_app(research_runner=successful_runner))
+    client = TestClient(make_test_app())
 
     started = client.post("/research", json={"query": "What changed?"}, headers=USER_HEADERS)
     assert started.status_code == 202
@@ -51,7 +56,7 @@ def test_research_job_status_result_and_history_flow():
 
 
 def test_user_cannot_fetch_another_users_job():
-    client = TestClient(create_app(research_runner=successful_runner))
+    client = TestClient(make_test_app())
     started = client.post("/research", json={"query": "Private question"}, headers=USER_HEADERS)
     job_id = started.json()["job_id"]
 
@@ -62,7 +67,7 @@ def test_user_cannot_fetch_another_users_job():
 
 
 def test_protected_routes_require_local_identity():
-    client = TestClient(create_app(research_runner=successful_runner))
+    client = TestClient(make_test_app())
     assert client.post("/research", json={"query": "Question"}).status_code == 401
     assert client.get("/research/history").status_code == 401
 
@@ -71,7 +76,7 @@ def test_background_failure_is_reported():
     async def failing_runner(query, user_id, *, job_id=None):
         raise RuntimeError("provider down")
 
-    client = TestClient(create_app(research_runner=failing_runner))
+    client = TestClient(make_test_app(failing_runner))
     started = client.post("/research", json={"query": "Question"}, headers=USER_HEADERS)
     job_id = started.json()["job_id"]
 
