@@ -5,10 +5,11 @@ research strategies run concurrently, then feed a transparent consensus and synt
 
 ## Current status
 
-Milestones 1–2 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
+Milestones 1–3 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
 LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
-and contradiction-resolution nodes. API, persistence, cache, authentication, and UI are deferred
-to their PRD milestones.
+and contradiction-resolution nodes. A thin FastAPI layer starts background jobs and provides
+status, result, and owner-scoped history endpoints. Persistence, cache, Google authentication, and
+UI are deferred to their PRD milestones.
 
 ## Current research architecture
 
@@ -35,3 +36,6 @@ pytest
 ```
 
 Set `OPENAI_API_KEY` and `TAVILY_API_KEY` in `.env` before running a live research request.
+
+Run the API with `uvicorn app.main:app --reload`. Until Google OAuth is added in Milestone 4,
+protected local-development requests require an `X-User-ID` header.

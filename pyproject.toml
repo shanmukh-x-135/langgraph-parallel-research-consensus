@@ -9,14 +9,17 @@ description = "Fixed three-agent LangGraph research workflow with transparent co
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "fastapi>=0.116,<1.0",
   "langchain-openai>=1.0,<2.0",
   "langgraph>=1.0,<2.0",
   "pydantic-settings>=2.0,<3.0",
   "tavily-python>=0.7,<1.0",
+  "uvicorn[standard]>=0.35,<1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "httpx>=0.28,<1.0",
   "pytest>=8.0,<10.0",
   "pytest-asyncio>=0.24,<2.0",
   "ruff>=0.11,<1.0",
