@@ -1,0 +1,1 @@
+"""Parallel research consensus application."""

@@ -1,0 +1,42 @@
+from datetime import datetime
+from enum import StrEnum
+
+from pydantic import BaseModel, Field, HttpUrl
+
+
+class AgentName(StrEnum):
+    BROAD = "broad_web"
+    ACADEMIC = "academic"
+    RECENT = "recent_news"
+
+
+class AgentStatus(StrEnum):
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    TIMED_OUT = "timed_out"
+
+
+class SearchSource(BaseModel):
+    title: str
+    url: HttpUrl
+    snippet: str = ""
+    published_at: datetime | None = None
+
+
+class Claim(BaseModel):
+    statement: str = Field(min_length=1)
+    evidence: str = Field(min_length=1)
+    source_urls: list[HttpUrl] = Field(min_length=1)
+
+
+class ExtractedClaims(BaseModel):
+    claims: list[Claim] = Field(default_factory=list)
+
+
+class ResearchResult(BaseModel):
+    agent: AgentName
+    strategy: str
+    status: AgentStatus
+    claims: list[Claim] = Field(default_factory=list)
+    sources: list[SearchSource] = Field(default_factory=list)
+    error: str | None = None
