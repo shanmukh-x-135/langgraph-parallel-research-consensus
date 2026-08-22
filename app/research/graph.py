@@ -10,6 +10,7 @@ from app.research.consensus import ConsensusAnalyzer, cluster_exact_claims
 from app.research.extraction import ClaimExtractor
 from app.research.models import AgentStatus
 from app.research.search import TavilySearch
+from app.research.source_integrity import deduplicate_sources, score_claims
 from app.research.state import ResearchState
 
 AGENT_NODE_NAMES = ("agent_broad", "agent_academic", "agent_recent")
@@ -45,12 +46,27 @@ async def resolve_contradictions(
     return {"contradictions": contradictions, "contested_points": contradictions}
 
 
-def build_research_graph(dependencies: AgentDependencies):
+def build_research_graph(dependencies: AgentDependencies, scoring_settings: Settings | None = None):
+    scoring_settings = scoring_settings or Settings(_env_file=None)
+
     async def compare_node(state: ResearchState) -> dict[str, Any]:
         return await compare_findings(state, dependencies)
 
     async def contradiction_node(state: ResearchState) -> dict[str, Any]:
         return await resolve_contradictions(state, dependencies)
+
+    def deduplication_node(state: ResearchState) -> dict[str, Any]:
+        return {"deduplicated_sources": deduplicate_sources(state["agent_results"])}
+
+    def confidence_node(state: ResearchState) -> dict[str, Any]:
+        return {
+            "confidence_scores": score_claims(
+                state.get("claim_clusters", []),
+                state["agent_results"],
+                state.get("contradictions", []),
+                scoring_settings,
+            )
+        }
 
     builder = StateGraph(ResearchState)
     for node_name, node in create_agent_nodes(dependencies).items():
@@ -58,9 +74,13 @@ def build_research_graph(dependencies: AgentDependencies):
         builder.add_edge(START, node_name)
         builder.add_edge(node_name, "compare_findings")
     builder.add_node("compare_findings", compare_node)
+    builder.add_node("deduplicate_sources", deduplication_node)
     builder.add_node("resolve_contradictions", contradiction_node)
-    builder.add_edge("compare_findings", "resolve_contradictions")
-    builder.add_edge("resolve_contradictions", END)
+    builder.add_node("score_confidence", confidence_node)
+    builder.add_edge("compare_findings", "deduplicate_sources")
+    builder.add_edge("deduplicate_sources", "resolve_contradictions")
+    builder.add_edge("resolve_contradictions", "score_confidence")
+    builder.add_edge("score_confidence", END)
     return builder.compile()
 
 
@@ -82,7 +102,8 @@ def build_default_dependencies(settings: Settings | None = None) -> AgentDepende
 @lru_cache
 def get_research_graph():
     """Return the process-wide graph used for live research."""
-    return build_research_graph(build_default_dependencies())
+    settings = get_settings()
+    return build_research_graph(build_default_dependencies(settings), settings)
 
 
 async def run_research_agents(

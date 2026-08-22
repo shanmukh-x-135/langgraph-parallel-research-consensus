@@ -92,6 +92,8 @@ class InMemoryJobStore:
                 claim_clusters=state.get("claim_clusters", []),
                 contradictions=state.get("contradictions", []),
                 contested_points=state.get("contested_points", []),
+                deduplicated_sources=state.get("deduplicated_sources", []),
+                confidence_scores=state.get("confidence_scores", {}),
                 final_answer=state.get("final_answer", ""),
             )
 

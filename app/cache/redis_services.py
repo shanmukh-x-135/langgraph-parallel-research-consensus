@@ -6,7 +6,13 @@ import redis.asyncio as redis
 from pydantic import BaseModel, Field
 
 from app.core.config import Settings
-from app.research.models import ClaimCluster, Contradiction, ResearchResult
+from app.research.models import (
+    ClaimCluster,
+    ConfidenceScore,
+    Contradiction,
+    ResearchResult,
+    SourceRecord,
+)
 from app.research.state import ResearchState
 
 
@@ -16,6 +22,8 @@ class CachedResearch(BaseModel):
     contradictions: list[Contradiction] = Field(default_factory=list)
     contested_points: list[Contradiction] = Field(default_factory=list)
     final_answer: str = ""
+    deduplicated_sources: list[SourceRecord] = Field(default_factory=list)
+    confidence_scores: dict[str, ConfidenceScore] = Field(default_factory=dict)
 
     @classmethod
     def from_state(cls, state: ResearchState) -> "CachedResearch":
@@ -25,6 +33,8 @@ class CachedResearch(BaseModel):
             contradictions=state.get("contradictions", []),
             contested_points=state.get("contested_points", []),
             final_answer=state.get("final_answer", ""),
+            deduplicated_sources=state.get("deduplicated_sources", []),
+            confidence_scores=state.get("confidence_scores", {}),
         )
 
     def to_state(self, job_id: str, user_id: str, query: str) -> ResearchState:
@@ -37,6 +47,8 @@ class CachedResearch(BaseModel):
             "contradictions": self.contradictions,
             "contested_points": self.contested_points,
             "final_answer": self.final_answer,
+            "deduplicated_sources": self.deduplicated_sources,
+            "confidence_scores": self.confidence_scores,
             "status": "running",
         }
 

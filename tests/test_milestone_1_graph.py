@@ -120,5 +120,7 @@ def test_graph_has_fixed_three_agent_fan_out_and_fan_in():
     for node_name in AGENT_NODE_NAMES:
         assert ("__start__", node_name) in edges
         assert (node_name, "compare_findings") in edges
-    assert ("compare_findings", "resolve_contradictions") in edges
-    assert ("resolve_contradictions", "__end__") in edges
+    assert ("compare_findings", "deduplicate_sources") in edges
+    assert ("deduplicate_sources", "resolve_contradictions") in edges
+    assert ("resolve_contradictions", "score_confidence") in edges
+    assert ("score_confidence", "__end__") in edges

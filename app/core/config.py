@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,13 +19,13 @@ class Settings(BaseSettings):
     agent_max_tokens: int = Field(default=1200, ge=100)
     recent_news_days: int = Field(default=30, ge=1)
 
-    confidence_weight_agreement: float = 0.35
-    confidence_weight_source_quality: float = 0.25
-    confidence_weight_independence: float = 0.20
-    confidence_weight_recency: float = 0.10
-    confidence_weight_contradiction: float = 0.10
-    confidence_threshold_high: float = 0.75
-    confidence_threshold_medium: float = 0.50
+    confidence_weight_agreement: float = Field(default=0.35, ge=0, le=1)
+    confidence_weight_source_quality: float = Field(default=0.25, ge=0, le=1)
+    confidence_weight_independence: float = Field(default=0.20, ge=0, le=1)
+    confidence_weight_recency: float = Field(default=0.10, ge=0, le=1)
+    confidence_weight_contradiction: float = Field(default=0.10, ge=0, le=1)
+    confidence_threshold_high: float = Field(default=0.75, ge=0, le=1)
+    confidence_threshold_medium: float = Field(default=0.50, ge=0, le=1)
 
     database_url: str = "postgresql+asyncpg://postgres:postgres@postgres:5432/research"
     redis_url: str = "redis://redis:6379/0"
@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = Field(default=86400, ge=300)
     app_env: Literal["development", "test", "production"] = "development"
     allow_dev_auth: bool = True
+
+    @model_validator(mode="after")
+    def validate_confidence_thresholds(self) -> "Settings":
+        if self.confidence_threshold_high < self.confidence_threshold_medium:
+            raise ValueError("High confidence threshold must be at least the medium threshold")
+        return self
 
 
 @lru_cache

@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -77,3 +78,22 @@ class Contradiction(BaseModel):
 
 class DetectedContradictions(BaseModel):
     contradictions: list[Contradiction] = Field(default_factory=list)
+
+
+class SourceRecord(BaseModel):
+    raw_url: HttpUrl
+    canonical_url: HttpUrl
+    domain: str
+    source_identity: str
+    citing_agents: list[AgentName]
+
+
+class ConfidenceScore(BaseModel):
+    claim_summary: str
+    agreement_score: float = Field(ge=0, le=1)
+    source_quality_score: float = Field(ge=0, le=1)
+    independence_score: float = Field(ge=0, le=1)
+    recency_score: float = Field(ge=0, le=1)
+    contradiction_penalty: float = Field(ge=0, le=1)
+    final_score: float = Field(ge=0, le=1)
+    tier: Literal["high", "medium", "low"]

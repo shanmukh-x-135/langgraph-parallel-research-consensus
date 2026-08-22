@@ -3,7 +3,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.research.models import ClaimCluster, Contradiction, ResearchResult
+from app.research.models import (
+    ClaimCluster,
+    ConfidenceScore,
+    Contradiction,
+    ResearchResult,
+    SourceRecord,
+)
 
 JobStatus = Literal["running", "completed", "failed"]
 
@@ -31,6 +37,8 @@ class ResearchReport(BaseModel):
     claim_clusters: list[ClaimCluster]
     contradictions: list[Contradiction]
     contested_points: list[Contradiction]
+    deduplicated_sources: list[SourceRecord] = Field(default_factory=list)
+    confidence_scores: dict[str, ConfidenceScore] = Field(default_factory=dict)
     final_answer: str = ""
 
 
