@@ -5,7 +5,7 @@ research strategies run concurrently, then feed a transparent consensus and synt
 
 ## Current status
 
-Milestones 1–8 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
+Milestones 1–9 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
 LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
 and contradiction-resolution nodes. A thin FastAPI layer starts background jobs and provides
 status, result, and owner-scoped history endpoints. Google ID tokens are exchanged for signed API
@@ -14,6 +14,8 @@ reports so completed research survives restarts. Redis provides TTL result cachi
 fixed-window rate limiting only. Conservative source deduplication and transparent weighted
 confidence scoring distinguish agent agreement from independent confirmation. The Streamlit UI
 supports Google login, polling, reports, contested points, sources, confidence, and stored history.
+The targeted pytest suite covers the PRD's agent, consensus, authentication, cache, and persistence
+failure modes.
 
 ## Current research architecture
 

@@ -120,3 +120,10 @@ def test_cache_errors_do_not_fail_research_job():
 
     assert report.status_code == 200
     assert report.json()["final_answer"] == "Cached answer"
+
+
+async def test_rate_limit_counters_are_independent_per_user():
+    limiter = InMemoryCacheRateLimiter(rate_limit=1)
+    assert await limiter.allow_research("user-1") is True
+    assert await limiter.allow_research("user-1") is False
+    assert await limiter.allow_research("user-2") is True
