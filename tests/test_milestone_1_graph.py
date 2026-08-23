@@ -68,7 +68,7 @@ async def test_one_agent_failure_does_not_fail_graph():
     assert statuses[AgentName.ACADEMIC] == AgentStatus.FAILED
     assert statuses[AgentName.BROAD] == AgentStatus.SUCCEEDED
     assert statuses[AgentName.RECENT] == AgentStatus.SUCCEEDED
-    assert result["status"] == "running"
+    assert result["status"] == "completed"
 
 
 @pytest.mark.asyncio
@@ -123,4 +123,5 @@ def test_graph_has_fixed_three_agent_fan_out_and_fan_in():
     assert ("compare_findings", "deduplicate_sources") in edges
     assert ("deduplicate_sources", "resolve_contradictions") in edges
     assert ("resolve_contradictions", "score_confidence") in edges
-    assert ("score_confidence", "__end__") in edges
+    assert ("score_confidence", "synthesise") in edges
+    assert ("synthesise", "__end__") in edges

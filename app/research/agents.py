@@ -7,6 +7,7 @@ from app.research.models import (
     AgentStatus,
     Claim,
     ClaimCluster,
+    ConfidenceScore,
     Contradiction,
     ResearchResult,
     SearchSource,
@@ -21,6 +22,10 @@ ExtractFunction = Callable[
 ]
 CompareFunction = Callable[[str, list[ResearchResult]], Awaitable[list[ClaimCluster]]]
 ResolveFunction = Callable[[str, list[ClaimCluster]], Awaitable[list[Contradiction]]]
+SynthesizeFunction = Callable[
+    [str, list[ClaimCluster], list[Contradiction], dict[str, ConfidenceScore]],
+    Awaitable[str],
+]
 
 
 @dataclass(frozen=True)
@@ -31,6 +36,7 @@ class AgentDependencies:
     recent_news_days: int
     compare: CompareFunction | None = None
     resolve: ResolveFunction | None = None
+    synthesize: SynthesizeFunction | None = None
 
 
 ACADEMIC_DOMAINS = [

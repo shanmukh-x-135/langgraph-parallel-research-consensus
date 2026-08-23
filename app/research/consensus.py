@@ -10,10 +10,12 @@ from app.research.models import (
     ClaimCluster,
     ClaimReference,
     ClusteredClaims,
+    ConfidenceScore,
     Contradiction,
     ContradictionPosition,
     DetectedContradictions,
     ResearchResult,
+    SynthesisOutput,
 )
 
 
@@ -71,6 +73,7 @@ class ConsensusAnalyzer:
         self._contradiction_model = model.with_structured_output(
             DetectedContradictions, method="json_schema"
         )
+        self._synthesis_model = model.with_structured_output(SynthesisOutput, method="json_schema")
 
     async def compare(self, query: str, results: list[ResearchResult]) -> list[ClaimCluster]:
         successful = [result for result in results if result.status == AgentStatus.SUCCEEDED]
@@ -105,6 +108,32 @@ class ConsensusAnalyzer:
         if not isinstance(output, DetectedContradictions):
             output = DetectedContradictions.model_validate(output)
         return self._validate_contradictions(output.contradictions, clusters)
+
+    async def synthesize(
+        self,
+        query: str,
+        clusters: list[ClaimCluster],
+        contradictions: list[Contradiction],
+        confidence_scores: dict[str, ConfidenceScore],
+    ) -> str:
+        payload = {
+            "clusters": [cluster.model_dump(mode="json") for cluster in clusters],
+            "contradictions": [item.model_dump(mode="json") for item in contradictions],
+            "confidence_scores": {
+                key: value.model_dump(mode="json") for key, value in confidence_scores.items()
+            },
+        }
+        prompt = (
+            "Write a concise research answer using only the supplied evidence. Cite supporting "
+            "source URLs inline. State confidence tiers where useful. Keep every contradiction "
+            "visible with both positions; never average competing claims into one conclusion. "
+            "If there is no evidence, say that the search found insufficient evidence.\n\n"
+            f"Research question: {query}\nResearch data: {json.dumps(payload)}"
+        )
+        output = await self._synthesis_model.ainvoke(prompt)
+        if not isinstance(output, SynthesisOutput):
+            output = SynthesisOutput.model_validate(output)
+        return output.final_answer
 
     @staticmethod
     def _validate_clusters(
@@ -198,3 +227,20 @@ class ConsensusAnalyzer:
             if len(positions) >= 2:
                 validated.append(contradiction.model_copy(update={"positions": positions}))
         return validated
+
+
+def fallback_synthesis(clusters: list[ClaimCluster], contradictions: list[Contradiction]) -> str:
+    if not clusters:
+        return (
+            "The research agents found insufficient source-backed evidence to answer the question."
+        )
+    lines = [cluster.summary for cluster in clusters]
+    if contradictions:
+        lines.append(
+            "Contested points: "
+            + "; ".join(
+                f"{item.disputed_claim} ({' versus '.join(p.statement for p in item.positions)})"
+                for item in contradictions
+            )
+        )
+    return "\n\n".join(lines)

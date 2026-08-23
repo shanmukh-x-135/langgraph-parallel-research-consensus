@@ -6,7 +6,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.core.config import Settings, get_settings
 from app.research.agents import AgentDependencies, create_agent_nodes
-from app.research.consensus import ConsensusAnalyzer, cluster_exact_claims
+from app.research.consensus import ConsensusAnalyzer, cluster_exact_claims, fallback_synthesis
 from app.research.extraction import ClaimExtractor
 from app.research.models import AgentStatus
 from app.research.search import TavilySearch
@@ -68,6 +68,26 @@ def build_research_graph(dependencies: AgentDependencies, scoring_settings: Sett
             )
         }
 
+    async def synthesis_node(state: ResearchState) -> dict[str, Any]:
+        if state["status"] == "failed":
+            return {"final_answer": "", "status": "failed"}
+        try:
+            answer = (
+                await dependencies.synthesize(
+                    state["query"],
+                    state.get("claim_clusters", []),
+                    state.get("contradictions", []),
+                    state.get("confidence_scores", {}),
+                )
+                if dependencies.synthesize
+                else fallback_synthesis(
+                    state.get("claim_clusters", []), state.get("contradictions", [])
+                )
+            )
+        except Exception:
+            return {"final_answer": "", "status": "failed"}
+        return {"final_answer": answer, "status": "completed"}
+
     builder = StateGraph(ResearchState)
     for node_name, node in create_agent_nodes(dependencies).items():
         builder.add_node(node_name, node)
@@ -77,10 +97,12 @@ def build_research_graph(dependencies: AgentDependencies, scoring_settings: Sett
     builder.add_node("deduplicate_sources", deduplication_node)
     builder.add_node("resolve_contradictions", contradiction_node)
     builder.add_node("score_confidence", confidence_node)
+    builder.add_node("synthesise", synthesis_node)
     builder.add_edge("compare_findings", "deduplicate_sources")
     builder.add_edge("deduplicate_sources", "resolve_contradictions")
     builder.add_edge("resolve_contradictions", "score_confidence")
-    builder.add_edge("score_confidence", END)
+    builder.add_edge("score_confidence", "synthesise")
+    builder.add_edge("synthesise", END)
     return builder.compile()
 
 
@@ -96,6 +118,7 @@ def build_default_dependencies(settings: Settings | None = None) -> AgentDepende
         recent_news_days=settings.recent_news_days,
         compare=consensus.compare,
         resolve=consensus.resolve,
+        synthesize=consensus.synthesize,
     )
 
 

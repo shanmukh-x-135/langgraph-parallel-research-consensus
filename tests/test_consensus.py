@@ -155,6 +155,8 @@ async def test_graph_preserves_resolved_contradiction_positions():
     assert len(state["contradictions"]) == 1
     assert state["contested_points"] == state["contradictions"]
     assert len(state["contradictions"][0].positions) == 2
+    assert state["status"] == "completed"
+    assert "Contested points" in state["final_answer"]
 
 
 async def test_consensus_failure_marks_graph_failed_without_erasing_agent_results():
@@ -179,3 +181,22 @@ async def test_consensus_failure_marks_graph_failed_without_erasing_agent_result
     assert state["status"] == "failed"
     assert len(state["agent_results"]) == 3
     assert state["claim_clusters"] == []
+
+
+async def test_empty_evidence_synthesizes_explicit_insufficiency_message():
+    async def search(request):
+        return []
+
+    async def extract(query, agent, strategy, sources):
+        return []
+
+    dependencies = AgentDependencies(
+        search=search,
+        extract=extract,
+        timeout_seconds=1,
+        recent_news_days=30,
+    )
+    state = await run_research_agents("Unknown question", "user", dependencies=dependencies)
+
+    assert state["status"] == "completed"
+    assert "insufficient" in state["final_answer"].lower()

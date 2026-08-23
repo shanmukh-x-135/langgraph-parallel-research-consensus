@@ -97,3 +97,7 @@ class ConfidenceScore(BaseModel):
     contradiction_penalty: float = Field(ge=0, le=1)
     final_score: float = Field(ge=0, le=1)
     tier: Literal["high", "medium", "low"]
+
+
+class SynthesisOutput(BaseModel):
+    final_answer: str = Field(min_length=1)
