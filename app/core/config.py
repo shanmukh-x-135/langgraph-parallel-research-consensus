@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = Field(default=86400, ge=300)
     app_env: Literal["development", "test", "production"] = "development"
     allow_dev_auth: bool = True
+    api_base_url: str = "http://fastapi:8000"
+    google_redirect_uri: str = "http://localhost:8501"
 
     @model_validator(mode="after")
     def validate_confidence_thresholds(self) -> "Settings":

@@ -5,14 +5,15 @@ research strategies run concurrently, then feed a transparent consensus and synt
 
 ## Current status
 
-Milestones 1–7 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
+Milestones 1–8 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
 LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
 and contradiction-resolution nodes. A thin FastAPI layer starts background jobs and provides
 status, result, and owner-scoped history endpoints. Google ID tokens are exchanged for signed API
 sessions. PostgreSQL stores users, sessions, agent runs, claims, clusters, contradictions, and final
 reports so completed research survives restarts. Redis provides TTL result caching and per-user
 fixed-window rate limiting only. Conservative source deduplication and transparent weighted
-confidence scoring distinguish agent agreement from independent confirmation. UI remains deferred.
+confidence scoring distinguish agent agreement from independent confirmation. The Streamlit UI
+supports Google login, polling, reports, contested points, sources, confidence, and stored history.
 
 ## Current research architecture
 
@@ -43,3 +44,6 @@ Set `OPENAI_API_KEY` and `TAVILY_API_KEY` in `.env` before running a live resear
 Run the API with `uvicorn app.main:app --reload`. Protected requests use bearer sessions returned
 by `POST /auth/google`. An `X-User-ID` header is accepted only when development authentication is
 explicitly enabled; production mode always requires a bearer session.
+
+Run the UI with `streamlit run streamlit_app/app.py` after setting `API_BASE_URL` and the Google
+OAuth client/redirect values.
