@@ -1,3 +1,4 @@
+from app.core.config import Settings
 from app.research.agents import AgentDependencies
 from app.research.consensus import ConsensusAnalyzer, cluster_exact_claims
 from app.research.graph import run_research_agents
@@ -36,6 +37,29 @@ def test_exact_comparison_clusters_all_agent_agreement():
     assert len(clusters) == 1
     assert clusters[0].agent_agreement == 3
     assert clusters[0].supporting_agents == list(AgentName)
+
+
+def test_consensus_uses_configured_synthesis_model(monkeypatch):
+    configured_models = []
+
+    class FakeChatModel:
+        def __init__(self, **kwargs):
+            configured_models.append(kwargs["model"])
+
+        def with_structured_output(self, schema, *, method):
+            return self
+
+    monkeypatch.setattr("app.research.consensus.ChatOpenAI", FakeChatModel)
+
+    ConsensusAnalyzer(
+        Settings(
+            openai_api_key="test-key",
+            agent_model="agent-model",
+            synthesis_model="synthesis-model",
+        )
+    )
+
+    assert configured_models == ["agent-model", "synthesis-model"]
 
 
 def test_exact_comparison_keeps_partial_disagreement_visible():

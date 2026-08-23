@@ -99,7 +99,7 @@ async def test_completed_research_survives_store_restart(tmp_path):
     await first_store.initialize()
     await first_store.upsert_user("user-1", "user@example.com", "User One", None)
     await first_store.create("job-1", "user-1", "Did revenue grow?")
-    await first_store.complete("job-1", completed_state("job-1"))
+    await first_store.complete("job-1", completed_state("job-1"), cache_hit=True)
     await first_store.dispose()
 
     restarted_store = DatabaseJobStore(database_url)
@@ -109,6 +109,8 @@ async def test_completed_research_survives_store_restart(tmp_path):
     assert record.status == "completed"
     assert record.report is not None
     assert record.report.final_answer.startswith("Revenue grew")
+    assert record.cache_hit is True
+    assert record.report.cache_hit is True
     assert len(record.report.agent_results) == 3
     assert len(record.report.contradictions) == 1
     assert await restarted_store.get_for_user("job-1", "user-2") is None

@@ -40,6 +40,7 @@ class ResearchReport(BaseModel):
     deduplicated_sources: list[SourceRecord] = Field(default_factory=list)
     confidence_scores: dict[str, ConfidenceScore] = Field(default_factory=dict)
     final_answer: str = ""
+    cache_hit: bool = False
 
 
 class ResearchHistoryItem(BaseModel):

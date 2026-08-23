@@ -21,6 +21,7 @@ class JobRecord:
     completed_at: datetime | None = None
     report: ResearchReport | None = None
     error: str | None = None
+    cache_hit: bool = False
 
 
 class JobStore(Protocol):
@@ -36,7 +37,9 @@ class JobStore(Protocol):
 
     async def get_for_user(self, job_id: str, user_id: str) -> JobRecord | None: ...
 
-    async def complete(self, job_id: str, state: ResearchState) -> None: ...
+    async def complete(
+        self, job_id: str, state: ResearchState, *, cache_hit: bool = False
+    ) -> None: ...
 
     async def fail(self, job_id: str, error: str) -> None: ...
 
@@ -76,7 +79,7 @@ class InMemoryJobStore:
             record = self._jobs.get(job_id)
             return record if record and record.user_id == user_id else None
 
-    async def complete(self, job_id: str, state: ResearchState) -> None:
+    async def complete(self, job_id: str, state: ResearchState, *, cache_hit: bool = False) -> None:
         async with self._lock:
             record = self._jobs[job_id]
             record.completed_at = datetime.now(UTC)
@@ -85,6 +88,7 @@ class InMemoryJobStore:
                 record.error = "Research pipeline failed"
                 return
             record.status = "completed"
+            record.cache_hit = cache_hit
             record.report = ResearchReport(
                 job_id=job_id,
                 query=record.query,
@@ -95,6 +99,7 @@ class InMemoryJobStore:
                 deduplicated_sources=state.get("deduplicated_sources", []),
                 confidence_scores=state.get("confidence_scores", {}),
                 final_answer=state.get("final_answer", ""),
+                cache_hit=cache_hit,
             )
 
     async def fail(self, job_id: str, error: str) -> None:
@@ -134,7 +139,11 @@ async def execute_research_job(
         except Exception:
             cached = None
         if cached is not None:
-            await store.complete(job_id, cached.to_state(job_id, user_id, query))
+            await store.complete(
+                job_id,
+                cached.to_state(job_id, user_id, query),
+                cache_hit=True,
+            )
             return
         state = await runner(query, user_id, job_id=job_id)
         await store.complete(job_id, state)

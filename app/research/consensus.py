@@ -73,7 +73,16 @@ class ConsensusAnalyzer:
         self._contradiction_model = model.with_structured_output(
             DetectedContradictions, method="json_schema"
         )
-        self._synthesis_model = model.with_structured_output(SynthesisOutput, method="json_schema")
+        synthesis_model = ChatOpenAI(
+            model=settings.synthesis_model,
+            api_key=api_key,
+            max_completion_tokens=settings.agent_max_tokens,
+            timeout=settings.agent_timeout_seconds,
+            max_retries=1,
+        )
+        self._synthesis_model = synthesis_model.with_structured_output(
+            SynthesisOutput, method="json_schema"
+        )
 
     async def compare(self, query: str, results: list[ResearchResult]) -> list[ClaimCluster]:
         successful = [result for result in results if result.status == AgentStatus.SUCCEEDED]

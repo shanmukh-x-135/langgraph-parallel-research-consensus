@@ -90,9 +90,10 @@ class DatabaseJobStore:
                 completed_at=row.completed_at,
                 report=ResearchReport.model_validate(report_row.report) if report_row else None,
                 error=row.error,
+                cache_hit=row.cache_hit,
             )
 
-    async def complete(self, job_id: str, state: ResearchState) -> None:
+    async def complete(self, job_id: str, state: ResearchState, *, cache_hit: bool = False) -> None:
         completed_at = datetime.now(UTC)
         async with self._sessions.begin() as session:
             research = await session.get(ResearchSessionRow, job_id)
@@ -105,6 +106,7 @@ class DatabaseJobStore:
                 return
 
             research.status = "completed"
+            research.cache_hit = cache_hit
             report = ResearchReport(
                 job_id=job_id,
                 query=research.query,
@@ -115,6 +117,7 @@ class DatabaseJobStore:
                 deduplicated_sources=state.get("deduplicated_sources", []),
                 confidence_scores=state.get("confidence_scores", {}),
                 final_answer=state.get("final_answer", ""),
+                cache_hit=cache_hit,
             )
             self._add_research_rows(session, job_id, report)
 

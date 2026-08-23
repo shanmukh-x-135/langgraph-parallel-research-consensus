@@ -53,6 +53,7 @@ def test_cache_hit_bypasses_research_pipeline():
 
     assert report.status_code == 200
     assert report.json()["final_answer"] == "Cached answer"
+    assert report.json()["cache_hit"] is True
     assert calls == 0
 
 
@@ -77,6 +78,8 @@ def test_cache_miss_executes_pipeline_and_populates_cache():
     assert response.status_code == 202
     assert calls == 1
     assert normalize_query("New question") in cache.cache
+    report = client.get(f"/research/{response.json()['job_id']}", headers=HEADERS)
+    assert report.json()["cache_hit"] is False
 
 
 def test_per_user_rate_limit_rejects_excess_jobs():

@@ -1,0 +1,22 @@
+[
+  {"id": "settled-01", "category": "settled", "question": "What is the chemical symbol for gold?"},
+  {"id": "settled-02", "category": "settled", "question": "Which planet is closest to the Sun?"},
+  {"id": "settled-03", "category": "settled", "question": "In what year did the Apollo 11 mission land on the Moon?"},
+  {"id": "settled-04", "category": "settled", "question": "What process do plants use to convert light energy into chemical energy?"},
+  {"id": "academic-01", "category": "academic", "question": "What does the scientific literature say about the effect of sleep deprivation on working memory?"},
+  {"id": "academic-02", "category": "academic", "question": "What evidence links regular aerobic exercise with cognitive health in older adults?"},
+  {"id": "academic-03", "category": "academic", "question": "How does retrieval practice affect long-term learning compared with rereading?"},
+  {"id": "academic-04", "category": "academic", "question": "What are the documented environmental effects of microplastics in marine ecosystems?"},
+  {"id": "current-01", "category": "current", "question": "What is the current status of the European Union AI Act implementation timeline?"},
+  {"id": "current-02", "category": "current", "question": "What recent progress has been reported in commercial fusion energy research?"},
+  {"id": "current-03", "category": "current", "question": "What are the latest major developments in global electric vehicle sales?"},
+  {"id": "current-04", "category": "current", "question": "What recent changes have major web browsers made to third-party cookie policies?"},
+  {"id": "contested-01", "category": "contested", "question": "Does remote work increase or decrease employee productivity?"},
+  {"id": "contested-02", "category": "contested", "question": "What does the evidence say about whether social media use harms adolescent mental health?"},
+  {"id": "contested-03", "category": "contested", "question": "Do four-day workweeks improve business performance without reducing output?"},
+  {"id": "contested-04", "category": "contested", "question": "Is nuclear power necessary for deep decarbonization of electricity systems?"},
+  {"id": "source-01", "category": "source_diversity", "question": "What are the principal benefits and risks of using generative AI in university education?"},
+  {"id": "source-02", "category": "source_diversity", "question": "How effective are urban tree-planting programs at reducing extreme heat?"},
+  {"id": "source-03", "category": "source_diversity", "question": "What are the economic and environmental tradeoffs of offshore wind power?"},
+  {"id": "source-04", "category": "source_diversity", "question": "How has open-source software affected modern software development and security?"}
+]

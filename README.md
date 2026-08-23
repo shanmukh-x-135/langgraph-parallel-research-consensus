@@ -1,56 +1,131 @@
 # Parallel Research Consensus
 
-A placement-portfolio project implementing a fixed, explainable LangGraph workflow: three
-research strategies run concurrently, then feed a transparent consensus and synthesis pipeline.
+A placement-portfolio project that demonstrates a fixed, explainable LangGraph research workflow.
+Three specialized agents search concurrently, their claims are compared and source-checked, and a
+final answer preserves disagreements instead of hiding them.
 
-## Current status
-
-Milestones 1–10 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
-LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
-and contradiction-resolution nodes. A thin FastAPI layer starts background jobs and provides
-status, result, and owner-scoped history endpoints. Google ID tokens are exchanged for signed API
-sessions. PostgreSQL stores users, sessions, agent runs, claims, clusters, contradictions, and final
-reports so completed research survives restarts. Redis provides TTL result caching and per-user
-fixed-window rate limiting only. Conservative source deduplication and transparent weighted
-confidence scoring distinguish agent agreement from independent confirmation. The Streamlit UI
-supports Google login, polling, reports, contested points, sources, confidence, and stored history.
-The targeted pytest suite covers the PRD's agent, consensus, authentication, cache, and persistence
-failure modes.
-Docker Compose runs the API, UI, PostgreSQL, and Redis, while GitHub Actions checks Ruff, pytest,
-and the application image build.
-
-## Current research architecture
+## Architecture
 
 ```text
-                    ┌─ agent_broad ────┐
-START ──────────────┼─ agent_academic ─┼─> compare_findings
-                    └─ agent_recent ────┘          |
-                                         resolve_contradictions ─> END
+Broad Web Agent ───────┐
+Academic Agent ────────┼─> compare_findings
+Recent News Agent ─────┘          ↓
+                         deduplicate_sources
+                                  ↓
+                       resolve_contradictions
+                                  ↓
+                         score_confidence
+                                  ↓
+                            synthesise
 ```
 
-LangGraph schedules the three async agent nodes concurrently. Each agent uses Tavily with a
-distinct search strategy and an OpenAI structured-output call to extract source-backed claims.
+LangGraph schedules the three async agent nodes in one fan-out superstep. Each uses Tavily with a
+different search strategy and an OpenAI structured-output call. A failed or timed-out agent becomes
+a structured result, so the remaining evidence can still complete the graph.
 
-## Local setup
+The consensus stages conservatively canonicalize URLs, strip tracking parameters, deduplicate by
+exact source domain, cluster claims, retain competing positions, and apply this deterministic score:
 
-Python 3.11 or newer is required.
+```text
+0.35 agreement + 0.25 source quality + 0.20 source independence
++ 0.10 recency - 0.10 contradiction penalty
+```
+
+FastAPI returns a job ID immediately and runs the graph through an in-process background task.
+PostgreSQL stores all completed research, while Redis is used only for normalized-query result
+caching and per-user fixed-window rate-limit counters. Streamlit polls the API and displays the
+answer, confidence, sources, contested points, and stored history.
+
+## Setup
+
+Python 3.11 or newer and PostgreSQL/Redis are required for local service execution.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 cp .env.example .env
-pytest
 ```
 
-Set `OPENAI_API_KEY` and `TAVILY_API_KEY` in `.env` before running a live research request.
+Set at least `OPENAI_API_KEY`, `TAVILY_API_KEY`, `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, and a long random `SESSION_SECRET`. `.env.example` documents the model,
+timeout, search limit, confidence, cache TTL, rate-limit, database, and Redis settings. Production
+mode rejects development authentication and validates the OAuth/session configuration at startup.
 
-Run the API with `uvicorn app.main:app --reload`. Protected requests use bearer sessions returned
-by `POST /auth/google`. An `X-User-ID` header is accepted only when development authentication is
-explicitly enabled; production mode always requires a bearer session.
+Run the services directly:
 
-Run the UI with `streamlit run streamlit_app/app.py` after setting `API_BASE_URL` and the Google
-OAuth client/redirect values.
+```bash
+uvicorn app.main:app --reload
+streamlit run streamlit_app/app.py
+```
 
-For the complete local stack, copy `.env.example` to `.env`, set the required secrets, and run
-`docker compose up --build`.
+Or run the complete stack:
+
+```bash
+docker compose up --build
+```
+
+The API is available at `http://localhost:8000` and Streamlit at `http://localhost:8501`.
+
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/auth/google` | Exchange a Google ID token for a signed API session |
+| `POST` | `/research` | Start an owner-scoped research job |
+| `GET` | `/research/{job_id}/status` | Poll running/completed/failed status |
+| `GET` | `/research/{job_id}` | Read a completed report |
+| `GET` | `/research/history` | List the authenticated user's research |
+| `GET` | `/health` | Service health check |
+
+All research endpoints require a bearer session. `X-User-ID` is accepted only when development
+authentication is explicitly enabled. Ownership is checked for both report and history access.
+
+## Tests and quality checks
+
+```bash
+pytest -q -W error
+ruff check .
+ruff format --check .
+```
+
+The targeted suite covers all-agent success, isolated failure/timeout, empty search results,
+malformed LLM output, agreement and disagreement, duplicate-source independence, contradiction
+preservation, confidence scoring, authentication/ownership, cache hit/miss behavior, and persistence
+after a simulated restart.
+
+## Evaluation
+
+`evaluation/questions.json` contains a fixed 20-question set spanning settled, academic, current,
+contested, and source-diversity topics. With the API running and a valid bearer session:
+
+```bash
+EVALUATION_BEARER_TOKEN=... python -m evaluation.run_evaluation
+```
+
+The ignored `evaluation/results.json` records reports plus latency, cache hit rate, source diversity,
+and contradiction counts. Claim accuracy, citation correctness, contradiction detection quality, and
+confidence-tier quality are initialized as unscored manual fields. After reviewing them on a 0–1
+scale, recalculate the summary with:
+
+```bash
+python -m evaluation.run_evaluation --summarize-only evaluation/results.json
+```
+
+No benchmark scores are claimed until a real evaluation run has been completed and reviewed.
+
+## Engineering decisions and limitations
+
+- The graph always has exactly three agents; it is intentionally not a generic agent framework.
+- Query caching is normalized exact-text matching, not semantic search.
+- Source identity uses canonical URLs and exact domains; publisher-lineage matching is out of scope.
+- Confidence is a transparent deterministic heuristic, not a trained model.
+- Background jobs are process-local; Redis is deliberately not a queue or broker.
+- Database tables are initialized with SQLAlchemy `create_all`; schema migrations are not included.
+- There is no conversational memory, vector database, general RAG layer, task queue, or deployment
+  infrastructure.
+- External search and LLM quality, availability, and cost remain service dependencies.
+
+These constraints keep the project small enough to explain and draw in an interview while still
+demonstrating orchestration, concurrency, failure isolation, structured AI output, persistence,
+caching, authentication, and meaningful reliability tests.
