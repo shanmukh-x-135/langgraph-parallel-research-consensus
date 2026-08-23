@@ -5,7 +5,7 @@ research strategies run concurrently, then feed a transparent consensus and synt
 
 ## Current status
 
-Milestones 1–9 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
+Milestones 1–10 are implemented: the Broad Web, Academic, and Recent News agents fan out in one
 LangGraph superstep, tolerate individual failures/timeouts, then feed structured claim comparison
 and contradiction-resolution nodes. A thin FastAPI layer starts background jobs and provides
 status, result, and owner-scoped history endpoints. Google ID tokens are exchanged for signed API
@@ -16,6 +16,8 @@ confidence scoring distinguish agent agreement from independent confirmation. Th
 supports Google login, polling, reports, contested points, sources, confidence, and stored history.
 The targeted pytest suite covers the PRD's agent, consensus, authentication, cache, and persistence
 failure modes.
+Docker Compose runs the API, UI, PostgreSQL, and Redis, while GitHub Actions checks Ruff, pytest,
+and the application image build.
 
 ## Current research architecture
 
@@ -49,3 +51,6 @@ explicitly enabled; production mode always requires a bearer session.
 
 Run the UI with `streamlit run streamlit_app/app.py` after setting `API_BASE_URL` and the Google
 OAuth client/redirect values.
+
+For the complete local stack, copy `.env.example` to `.env`, set the required secrets, and run
+`docker compose up --build`.
